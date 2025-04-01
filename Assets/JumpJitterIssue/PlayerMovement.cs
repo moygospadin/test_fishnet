@@ -2,31 +2,20 @@ using FishNet.Object;
 using FishNet.Object.Prediction;
 using FishNet.Transporting;
 using FishNet.Utility.Template;
+using GameKit.Dependencies.Utilities;
 using UnityEngine;
 
 public struct ReplicateData : IReplicateData
 {
     public OneTimeInput OneTimeInput;
 
-    public bool IsGrounded;
-    public bool OnSlope;
-    public Vector3 SlopeHitNormal;
     public Vector2 MovementNorm;
-    public bool IsRunning;
 
-    public ReplicateData(
-        OneTimeInput oneTimeInput,
-        Vector2 movementNorm,
-        bool onSlope,
-        Vector3 slopeHitNormal
-    )
+    public ReplicateData(OneTimeInput oneTimeInput, Vector2 movementNorm)
         : this()
     {
         OneTimeInput = oneTimeInput;
         MovementNorm = movementNorm;
-
-        OnSlope = onSlope;
-        SlopeHitNormal = slopeHitNormal;
     }
 
     private uint _tick;
@@ -85,7 +74,7 @@ public struct OneTimeInput
 public class PlayerMovement : TickNetworkBehaviour
 {
     [SerializeField]
-    private float _jumpForce = 120f;
+    private float _jumpForce = 150f;
 
     [SerializeField]
     private float _moveSpeed = 0.8f;
@@ -96,20 +85,46 @@ public class PlayerMovement : TickNetworkBehaviour
     [SerializeField]
     private float _playerHeight = 3f;
 
-    public PredictionRigidbody PredictionRigidbody = new();
+    public PredictionRigidbody PredictionRigidbody;
 
     public OneTimeInput oneTimeInputs = new();
 
-    int ignoreGroundCheckLayers;
-
-    private float maxSlopeAngle = 45f;
-    private RaycastHit _slopeHit;
-
     private void Awake()
     {
+        PredictionRigidbody = ObjectCaches<PredictionRigidbody>.Retrieve();
         PredictionRigidbody.Initialize(GetComponent<Rigidbody>());
+    }
 
-        ignoreGroundCheckLayers = ~LayerMask.GetMask("Player");
+    private void OnDestroy()
+    {
+        ObjectCaches<PredictionRigidbody>.StoreAndDefault(ref PredictionRigidbody);
+    }
+
+    public override void OnStartNetwork()
+    {
+        base.TimeManager.OnTick += TimeManager_OnTick;
+        base.TimeManager.OnPostTick += TimeManager_OnPostTick;
+    }
+
+    public override void OnStopNetwork()
+    {
+        base.TimeManager.OnTick -= TimeManager_OnTick;
+        base.TimeManager.OnPostTick -= TimeManager_OnPostTick;
+    }
+
+    private void TimeManager_OnTick()
+    {
+        RunInputs(CreateReplicateData());
+    }
+
+    private void TimeManager_OnPostTick()
+    {
+        CreateReconcile();
+    }
+
+    private void Update()
+    {
+        HandleJump();
     }
 
     private void HandleJump()
@@ -123,33 +138,6 @@ public class PlayerMovement : TickNetworkBehaviour
         }
     }
 
-    public override void OnStartNetwork()
-    {
-        //Rigidbodies need tick and postTick.
-        base.SetTickCallbacks(TickCallback.Tick | TickCallback.PostTick);
-    }
-
-    protected override void TimeManager_OnTick()
-    {
-        RunInputs(CreateReplicateData());
-        //CreateReconcile();
-    }
-
-    protected override void TimeManager_OnPostTick()
-    {
-        CreateReconcile();
-    }
-
-    private void FixedUpdate()
-    {
-        GroundCheck();
-    }
-
-    private void Update()
-    {
-        HandleJump();
-    }
-
     private ReplicateData CreateReplicateData()
     {
         if (!base.IsOwner)
@@ -160,14 +148,7 @@ public class PlayerMovement : TickNetworkBehaviour
             Input.GetAxisRaw("Vertical")
         ).normalized;
 
-        bool onSlope = SlopeCheck();
-
-        ReplicateData md = new ReplicateData(
-            oneTimeInputs,
-            movementNorm,
-            onSlope,
-            _slopeHit.normal
-        );
+        ReplicateData md = new ReplicateData(oneTimeInputs, movementNorm);
         oneTimeInputs.ResetState();
 
         return md;
@@ -182,37 +163,14 @@ public class PlayerMovement : TickNetworkBehaviour
     {
         Vector3 movementDirection = new Vector3(data.MovementNorm.x, 0f, data.MovementNorm.y);
 
-        Vector3 forces;
-        float currentMaxSpeed = data.IsRunning ? 1.3f : 0.8f;
-        if (data.OnSlope)
-        {
-            //Debug.Log("ON SLOPE");
-            forces =
-                GetSlopeMoveDirection(movementDirection.normalized, data.SlopeHitNormal)
-                * currentMaxSpeed;
-        }
-        else
-        {
-            forces = movementDirection.normalized * currentMaxSpeed;
-        }
-
-        if (!data.IsGrounded)
-        {
-            PredictionRigidbody.AddForce(Physics.gravity * 20f);
-        }
+        Vector3 forces = movementDirection.normalized * 1.3f;
 
         PredictionRigidbody.AddForce(forces, ForceMode.VelocityChange);
-        PredictionRigidbody.AddForce(Physics.gravity * 5f);
-        if (data.OneTimeInput.ExternalForce != Vector3.zero)
+        PredictionRigidbody.AddForce(Physics.gravity * 7f);
+        if (data.OneTimeInput.Jump)
         {
-            PredictionRigidbody.AddForce(data.OneTimeInput.ExternalForce, ForceMode.Impulse);
-        }
+            Vector3 jmpFrc = (transform.up + movementDirection.normalized) * 150f;
 
-        if (data.OneTimeInput.Jump && GroundCheck())
-        {
-            //Vector3 jmpFrc = (transform.up + movementDirection.normalized) * _jumpForce;
-            Vector3 jmpFrc = (transform.up + movementDirection.normalized) * 120f;
-            //PredictionRigidbody.Velocity(Vector3.zero);
             PredictionRigidbody.AddForce(jmpFrc, ForceMode.Impulse);
         }
         PredictionRigidbody.Simulate();
@@ -229,54 +187,5 @@ public class PlayerMovement : TickNetworkBehaviour
     private void ReconcileState(ReconcileData data, Channel channel = Channel.Unreliable)
     {
         PredictionRigidbody.Reconcile(data.PredictionRigidbody);
-    }
-
-    RaycastHit[] raycastHits = new RaycastHit[10];
-
-    bool GroundCheck()
-    {
-        int numberOfHits = Physics.SphereCastNonAlloc(
-            PredictionRigidbody.Rigidbody.position,
-            0.5f,
-            transform.up * -1,
-            raycastHits,
-            1.8f,
-            ignoreGroundCheckLayers
-        );
-        for (int i = 0; i < numberOfHits; i++)
-        {
-            if (raycastHits[i].transform.root == transform)
-            {
-                continue;
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    private bool SlopeCheck()
-    {
-        if (
-            Physics.Raycast(
-                PredictionRigidbody.Rigidbody.position,
-                Vector3.down,
-                out _slopeHit,
-                3f * 0.5f + 0.6f,
-                ignoreGroundCheckLayers
-            )
-        )
-        {
-            float angle = Vector3.Angle(Vector3.up, _slopeHit.normal);
-
-            return angle < maxSlopeAngle && angle != 0;
-        }
-        return false;
-    }
-
-    private Vector3 GetSlopeMoveDirection(Vector3 moveDirection, Vector3 slopeHitNormal)
-    {
-        return Vector3.ProjectOnPlane(moveDirection, slopeHitNormal).normalized;
     }
 }
