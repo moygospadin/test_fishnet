@@ -920,32 +920,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: efb593b74b0cd434aa34e59409e7c28e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  <OnStartServerCalled>k__BackingField: 0
-  <OnStartClientCalled>k__BackingField: 0
-  _onStartNetworkCalled: 0
-  _onStopNetworkCalled: 0
   _componentIndexCache: 255
   _addedNetworkObject: {fileID: 2101524764}
-  _transportManagerCache: {fileID: 0}
   _networkObjectCache: {fileID: 0}
-  _initializedOnceServer: 0
-  _initializedOnceClient: 0
-  <IsBehaviourReconciling>k__BackingField: 0
-  _remainingReplicateResends: 0
-  _remainingReconcileResends: 0
-  _lastReplicateReadRemoteTick: 0
-  _replicateStartTick: 0
-  _lastOrderedReplicatedTick: 0
-  _lastReadReplicateTick: 0
-  _lastReadReconcileRemoteTick: 0
-  _lastReconcileTick: 0
-  _lastTransformPosition: {x: 0, y: 0, z: 0}
-  _lastTransformRotation: {x: 0, y: 0, z: 0, w: 0}
-  _lastTransformScale: {x: 0, y: 0, z: 0}
-  _usesPrediction: 0
-  _rpcMethodCount: 0
-  _rpcHashSize: 1
-  SyncTypeDirty: 0
   spawnPoint: {fileID: 594204739}
   playerPrefab: {fileID: 303449598114786579, guid: 26a567abbe21227428f5c3d309d1d73c, type: 3}
 --- !u!4 &2101524766

@@ -132,13 +132,13 @@ public class PlayerMovement : TickNetworkBehaviour
     protected override void TimeManager_OnTick()
     {
         RunInputs(CreateReplicateData());
-        CreateReconcile();
+        //CreateReconcile();
     }
 
-    //protected override void TimeManager_OnPostTick()
-    //{
-    //    CreateReconcile();
-    //}
+    protected override void TimeManager_OnPostTick()
+    {
+        CreateReconcile();
+    }
 
     private void FixedUpdate()
     {
@@ -207,8 +207,7 @@ public class PlayerMovement : TickNetworkBehaviour
         {
             PredictionRigidbody.AddForce(data.OneTimeInput.ExternalForce, ForceMode.Impulse);
         }
-        Debug.Log($"_isGrounded 123aac {data.IsGrounded}");
-        Debug.Log($"data.OneTimeInput.Jump 123aac {data.OneTimeInput.Jump}");
+
         if (data.OneTimeInput.Jump && GroundCheck())
         {
             //Vector3 jmpFrc = (transform.up + movementDirection.normalized) * _jumpForce;
