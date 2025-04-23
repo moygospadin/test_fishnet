@@ -145,13 +145,13 @@ namespace FishNet.Component.ColliderRollback
             if (obj.ConnectionState == LocalConnectionState.Started)
             {
                 //If the server invoking this event is the only one started subscribe.
-                if (_networkManager.ServerManager.OneServerStarted())
+                if (_networkManager.ServerManager.IsOnlyOneServerStarted())
                     _networkManager.TimeManager.OnPostTick += TimeManager_OnPostTick;
             }
             else
             {
                 //If no servers are started then unsubscribe.
-                if (!_networkManager.ServerManager.AnyServerStarted())
+                if (!_networkManager.ServerManager.IsAnyServerStarted())
                     _networkManager.TimeManager.OnPostTick -= TimeManager_OnPostTick;
             }
         }

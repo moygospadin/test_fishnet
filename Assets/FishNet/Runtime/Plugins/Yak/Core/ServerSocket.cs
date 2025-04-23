@@ -61,7 +61,7 @@ namespace FishNet.Transporting.Yak.Server
         }
 
 
-        //PROstart
+        //PROSTART
         /// <summary>
         /// Sets a new connection state.
         /// </summary>

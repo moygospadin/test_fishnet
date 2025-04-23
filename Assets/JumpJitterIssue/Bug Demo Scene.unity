@@ -924,7 +924,7 @@ MonoBehaviour:
   _addedNetworkObject: {fileID: 2101524764}
   _networkObjectCache: {fileID: 0}
   spawnPoint: {fileID: 594204739}
-  playerPrefab: {fileID: 303449598114786579, guid: 26a567abbe21227428f5c3d309d1d73c, type: 3}
+  playerPrefab: {fileID: 303449598114786579, guid: d0b4323fe89989542a7755a5bfc0ef57, type: 3}
 --- !u!4 &2101524766
 Transform:
   m_ObjectHideFlags: 0

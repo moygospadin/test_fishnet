@@ -930,7 +930,7 @@ namespace FishNet.Object
              * excluding clientHost. */
             if (toServer)
             {
-                NetworkManager.TransportManager.SendToServer((byte)channel, writer.GetArraySegment(), false);
+                NetworkManager.TransportManager.SendToServer((byte)channel, writer.GetArraySegment(), splitLargeMessages: true);
             }
             else
             {
@@ -944,7 +944,7 @@ namespace FishNet.Object
                     if (IsClientStarted)
                         _networkConnectionCache.Add(ClientManager.Connection);
 
-                    NetworkManager.TransportManager.SendToClients((byte)channel, writer.GetArraySegment(), Observers, _networkConnectionCache, false);
+                    NetworkManager.TransportManager.SendToClients((byte)channel, writer.GetArraySegment(), Observers, _networkConnectionCache, splitLargeMessages: true);
                 }
             }
 
